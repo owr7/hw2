@@ -78,7 +78,6 @@ class GreedyAgent(Player):
                     best_actions = [action]
                 elif h_value == best_value:
                     best_actions.append(action)
-
                 if len(state.opponents_alive) > 2:
                     # consider only 1 possible opponents actions to reduce time & memory:
                     break
