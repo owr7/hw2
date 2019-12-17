@@ -44,7 +44,7 @@ class MinimaxAgent(Player):
 
         def __init__(self, game_state: GameState, agent_action: GameAction):
             self.game_state = game_state
-            self.agent_action = agent_actionn
+            self.agent_action = agent_action
 
         @property
         def turn(self):
