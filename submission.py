@@ -71,14 +71,14 @@ class MinimaxAgent(Player):
                 opponents_actions[self.player_index] = state.agent_action
                 next_state = get_next_state(state.game_state, opponents_actions)
                 our_turn = self.TurnBasedGameState(next_state, None)
-                curr_min = min(self.minimax(our_turn, depth), curr_min)
+                curr_min = min(self.minimax(our_turn, depth+1), curr_min)
             #print(curr_max)
             return curr_min
         else:
             curr_max = -np.inf
             for agent_action in state.game_state.get_possible_actions(player_index=self.player_index):
                 opp_turn = self.TurnBasedGameState(state.game_state, agent_action)
-                curr_max = max(self.minimax(opp_turn, depth+1), curr_max)
+                curr_max = max(self.minimax(opp_turn, depth), curr_max)
             return curr_max
 
     def get_action(self, state: GameState) -> GameAction:
@@ -99,8 +99,49 @@ class MinimaxAgent(Player):
 
 
 class AlphaBetaAgent(MinimaxAgent):
+
+    def minimax(self, state: MinimaxAgent.TurnBasedGameState, depth: int, alpha=-np.inf, beta=np.inf) -> float:
+        if state.game_state.is_terminal_state or depth > 5 or state.game_state.get_possible_actions(
+                player_index=self.player_index).__len__ is 0:
+            return heuristic(state.game_state, self.player_index)
+        if state.turn == self.Turn.OPPONENTS_TURN:
+            curr_min = np.inf
+            for opponents_actions in state.game_state.get_possible_actions_dicts_given_action(state.agent_action,
+                                                                                              player_index=self.player_index):
+                opponents_actions[self.player_index] = state.agent_action
+                next_state = get_next_state(state.game_state, opponents_actions)
+                our_turn = self.TurnBasedGameState(next_state, None)
+                curr_min = min(self.minimax(our_turn, depth + 1, alpha, beta), curr_min)
+                beta = min(beta, curr_min)
+                if curr_min <= alpha:
+                    return -np.inf
+            # print(curr_max)
+            return curr_min
+        else:
+            curr_max = -np.inf
+            for agent_action in state.game_state.get_possible_actions(player_index=self.player_index):
+                opp_turn = self.TurnBasedGameState(state.game_state, agent_action)
+                curr_max = max(self.minimax(opp_turn, depth, alpha, beta), curr_max)
+                alpha = max(curr_max, alpha)
+                if curr_max >= beta:
+                    return np.inf
+            return curr_max
+
     def get_action(self, state: GameState) -> GameAction:
         # Insert your code here...
+        choose_max = -np.inf
+
+        max_action = GameAction.LEFT
+        for agent_action in state.get_possible_actions(player_index=self.player_index):
+            head_tree = self.TurnBasedGameState(state, agent_action)  # possible opponent action
+            current_action_max = self.minimax(head_tree, 1)
+
+            # print(choose_max, curr_result, "\n")
+            if choose_max < current_action_max:
+                choose_max = current_action_max
+                max_action = agent_action
+                alpha = choose_max
+        return max_action
         pass
 
 
