@@ -14,11 +14,17 @@ def heuristic(state: GameState, player_index: int) -> float:
     """
     # Insert your code here...
     snake = state.snakes[player_index]
-    d_min = min(abs(d[0] - snake.head[0]) + abs(d[1] - snake.head[1]) for d in state.fruits_locations)
+    d_min=0
+    head_tail_factor=0.05
+    if state.fruits_locations.__len__() is not 0:
+        d_min = min(abs(d[0] - snake.head[0]) + abs(d[1] - snake.head[1]) for d in state.fruits_locations)
     d_head_tail = abs(snake.head[0] - snake.tail_position[0]) + abs(snake.head[1] - snake.tail_position[1])
-    dont_die = snake.alive
+    dont_die = 1 if snake.alive else 0
     # max(state.board_size[0], state.board_size[1]) -
-    return (snake.length + 1 / d_min) * dont_die
+    x=1
+    if d_min>0:
+        x=1/d_min
+    return (snake.length + x + d_head_tail*head_tail_factor) * dont_die
     pass
     # + d_head_tail
 
@@ -56,38 +62,38 @@ class MinimaxAgent(Player):
         return -grade if grade > 0 else 1
 
     def minimax(self, state: TurnBasedGameState, depth: int) -> float:
-        if state.game_state.is_terminal_state or depth > 5:
+        if state.game_state.is_terminal_state or depth > 0 or state.game_state.get_possible_actions(player_index=self.player_index).__len__ is 0:
             return heuristic(state.game_state, self.player_index)
-        if state.turn == self.Turn.AGENT_TURN:
-            curr_max = -np.inf
+        if state.turn == self.Turn.OPPONENTS_TURN:
+            curr_min = np.inf
             for opponents_actions in state.game_state.get_possible_actions_dicts_given_action(state.agent_action,
                                                                                               player_index=self.player_index):
                 opponents_actions[self.player_index] = state.agent_action
                 next_state = get_next_state(state.game_state, opponents_actions)
-                opp_turn = self.TurnBasedGameState(next_state, None)
-                curr_max = max(self.minimax(opp_turn, depth + 1), curr_max)
-            print(curr_max)
-            return curr_max
-        else:
-            curr_min = np.inf
-            for agent_action in state.game_state.get_possible_actions(player_index=self.player_index):
-                our_turn = self.TurnBasedGameState(state.game_state, agent_action)
-                curr_min = min(self.minimax(our_turn, depth + 1), curr_min)
+                our_turn = self.TurnBasedGameState(next_state, None)
+                curr_min = min(self.minimax(our_turn, depth), curr_min)
+            #print(curr_max)
             return curr_min
+        else:
+            curr_max = -np.inf
+            for agent_action in state.game_state.get_possible_actions(player_index=self.player_index):
+                opp_turn = self.TurnBasedGameState(state.game_state, agent_action)
+                curr_max = max(self.minimax(opp_turn, depth+1), curr_max)
+            return curr_max
 
     def get_action(self, state: GameState) -> GameAction:
         # Insert your code here...
         choose_max = -np.inf
-        max_action = 1
-        for agent_action in state.get_possible_actions(player_index=self.player_index):
-            #print(agent_action, "\n")
-            head_tree = self.TurnBasedGameState(state, agent_action)
-            curr_result = self.minimax(head_tree, 1)
-            #print(choose_max, curr_result, "\n")
-            if choose_max < curr_result:
-                choose_max = curr_result
-                max_action = agent_action
 
+        max_action = GameAction.LEFT
+        for agent_action in state.get_possible_actions(player_index=self.player_index):
+            head_tree = self.TurnBasedGameState(state, agent_action) #possible opponent action
+            current_action_max = self.minimax(head_tree, 1)
+
+            #print(choose_max, curr_result, "\n")
+            if choose_max < current_action_max:
+                choose_max = current_action_max
+                max_action = agent_action
         return max_action
         pass
 
