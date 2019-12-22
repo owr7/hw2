@@ -2,7 +2,7 @@ from environment import Player, GameState, GameAction, get_next_state
 from utils import get_fitness
 import numpy as np
 from enum import Enum
-
+import time
 
 def heuristic(state: GameState, player_index: int) -> float:
     """
@@ -56,13 +56,8 @@ class MinimaxAgent(Player):
         def turn(self):
             return MinimaxAgent.Turn.AGENT_TURN if self.agent_action is None else MinimaxAgent.Turn.OPPONENTS_TURN
 
-    def U(self, state: GameState):
-        our_snake = state.snakes[self.player_index]
-        grade = sum(1 for s in state.snakes if s.index is not self.player_index and s.length > our_snake.length)
-        return -grade if grade > 0 else 1
-
     def minimax(self, state: TurnBasedGameState, depth: int) -> float:
-        if state.game_state.is_terminal_state or depth > 0 or state.game_state.get_possible_actions(player_index=self.player_index).__len__ is 0:
+        if state.game_state.is_terminal_state or depth > 3 or state.game_state.get_possible_actions(player_index=self.player_index).__len__ is 0:
             return heuristic(state.game_state, self.player_index)
         if state.turn == self.Turn.OPPONENTS_TURN:
             curr_min = np.inf
@@ -83,6 +78,7 @@ class MinimaxAgent(Player):
 
     def get_action(self, state: GameState) -> GameAction:
         # Insert your code here...
+        start = time.time()
         choose_max = -np.inf
 
         max_action = GameAction.LEFT
@@ -94,6 +90,9 @@ class MinimaxAgent(Player):
             if choose_max < current_action_max:
                 choose_max = current_action_max
                 max_action = agent_action
+        end = time.time()
+        self.counter_steps += 1
+        self.avg_time = ((end-start)+self.avg_time*(self.counter_steps-1))/self.counter_steps
         return max_action
         pass
 
@@ -129,6 +128,7 @@ class AlphaBetaAgent(MinimaxAgent):
 
     def get_action(self, state: GameState) -> GameAction:
         # Insert your code here...
+        start = time.time()
         choose_max = -np.inf
 
         max_action = GameAction.LEFT
@@ -141,9 +141,19 @@ class AlphaBetaAgent(MinimaxAgent):
                 choose_max = current_action_max
                 max_action = agent_action
                 alpha = choose_max
+        end = time.time()
+        self.counter_steps += 1
+        self.avg_time = ((end - start) + self.avg_time * (self.counter_steps - 1)) / self.counter_steps
         return max_action
         pass
 
+def int2GA(x: int):
+    if x == 0:
+        return GameAction.LEFT
+    if x == 1:
+        return GameAction.STRAIGHT
+    if x == 2:
+        return GameAction.RIGHT
 
 def SAHC_sideways():
     """
@@ -158,8 +168,55 @@ def SAHC_sideways():
     3) print the best moves vector you found.
     :return:
     """
+    action_vector = tuple(int2GA(np.random.choice(2)) for i in range(50))
+    max_value = get_fitness(action_vector)
+    for i in range(100):
+        curr_vector = tuple(int2GA(np.random.choice(2)) for i in range(50))
+        curr_value = get_fitness(curr_vector)
+        if curr_value > max_value:
+            action_vector = curr_vector
+            max_value = curr_value
+    print(action_vector)
+    print(max_value)
+    print("-----------------------------------------------------------")
+    #action_vector = tuple(int2GA(i) for i in np.random.choice(3, 50))
+    #print(action_vector)
+    #print(get_fitness(action_vector))
+    side_steps = 0
+    action_set = {GameAction.LEFT, GameAction.STRAIGHT, GameAction.RIGHT}
+    for i in range(50):
+        curr_value = get_fitness(action_vector)
+        operator = list(action_set.difference({action_vector[i]}))
+        help_list = list(action_vector)
+        max = -np.inf
+        best_states = []
+        for k in operator:
+            help_list[i] = k
+            new_state = tuple(help_list)
+            new_state_value = get_fitness(new_state)
+            if new_state_value > max:
+                max = new_state_value
+                best_states = [new_state]
+            elif new_state_value == max:
+                best_states.append(new_state)
+        index = np.random.choice(best_states.__len__())
+        if max > curr_value:
+            action_vector = tuple(best_states[index])
+            side_steps = 0
+        elif max == curr_value and side_steps < 50:
+            action_vector = tuple(best_states[index])
+            print("side step")
+            side_steps += 1
+        else:
+            print(action_vector)
+            get_fitness(action_vector)
+            print(curr_value)
+            break
     pass
 
+def flip_coin(x: float):
+    c = np.random.random()
+    return True if c < x else False
 
 def local_search():
     """
@@ -174,6 +231,63 @@ def local_search():
     3) print the best moves vector you found.
     :return:
     """
+    T_factor = 0.66
+    for j in range(1):
+        best_value_ever = -np.inf
+        best_action_ever = []
+# the local search algo for 10 times:
+#-----------------------------------------------------------------------------------------------
+        for k in range(10):
+            action_vector = tuple(int2GA(i) for i in np.random.choice(3, 50))
+            side_steps = 0
+            action_set = {GameAction.LEFT, GameAction.STRAIGHT, GameAction.RIGHT}
+            T = 10
+            best_value = -np.inf
+            best_action = []
+# one iteration
+# ____________________________________________________________________________________
+            for i in range(50):
+                curr_value = get_fitness(action_vector)
+                operator = list(action_set.difference({action_vector[i]}))
+                help_list = list(action_vector)
+                max_ = -np.inf
+                best_states = []
+                for k in operator:
+                    help_list[i] = k
+                    new_state = tuple(help_list)
+                    new_state_value = get_fitness(new_state)
+                    if new_state_value > max_:
+                        max_ = new_state_value
+                        best_states = [new_state]
+                    elif new_state_value == max_:
+                        best_states.append(new_state)
+                index = np.random.choice(best_states.__len__())
+                if max_ > curr_value:
+                    action_vector = tuple(best_states[index])
+                    curr_value = max_
+                    side_steps = 0
+                elif max_ == curr_value and side_steps < 50:
+                    action_vector = tuple(best_states[index])
+                    side_steps += 1
+                    curr_value = max_
+                elif max_ < curr_value and flip_coin(np.exp(-abs(max_-curr_value)/T)):
+                    action_vector = tuple(best_states[index])
+                    side_steps = 0
+                else:
+                    break
+                if best_value<curr_value:
+                    best_action = action_vector
+                    best_value = curr_value
+                T = T * T_factor
+# ____________________________________________________________________________________
+            if best_value > best_value_ever:
+                best_value_ever = best_value
+                best_action_ever = best_action
+        print(best_action_ever)
+        print(best_value_ever)
+        print(get_fitness(best_action_ever))
+        T_factor *= 0.95
+
     pass
 
 
@@ -184,5 +298,5 @@ class TournamentAgent(Player):
 
 
 if __name__ == '__main__':
-    SAHC_sideways()
+    #SAHC_sideways()
     local_search()

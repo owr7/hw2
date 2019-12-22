@@ -375,7 +375,8 @@ def get_next_state(game_state: GameState, living_players_actions: dict) -> GameS
 
 class Player(ABC):
     n_players: int = 0
-
+    avg_time = 0
+    counter_steps = 0
     @abstractmethod
     def get_action(self, state: GameState) -> GameAction:
         pass
@@ -552,7 +553,8 @@ class SnakesBackendSync:
             logging.info(f"Current Winner: {self.game_state.current_winner}")
 
             self.played_this_turn = []
-
+        print(self._agents_controllers[0].avg_time)
+        print(self.game_state.snakes[0].length)
         print(f"Winner: {self.game_state.current_winner}")
 
     def get_living_agents(self):

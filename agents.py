@@ -1,7 +1,7 @@
 import keyboard
 import numpy as np
 from environment import Player, GameAction, GameState, get_next_state
-
+import time
 
 class KeyboardPlayer(Player):
     KEY_PRESSED = GameAction.STRAIGHT
@@ -66,6 +66,7 @@ class GreedyAgent(Player):
 
     def get_action(self, state: GameState) -> GameAction:
         # init with all possible actions for the case where the agent is alone. it will (possibly) be overridden later
+        start = time.time()
         best_actions = state.get_possible_actions(player_index=self.player_index)
         best_value = -np.inf
         for action in state.get_possible_actions(player_index=self.player_index):
@@ -81,6 +82,9 @@ class GreedyAgent(Player):
                 if len(state.opponents_alive) > 2:
                     # consider only 1 possible opponents actions to reduce time & memory:
                     break
+        end = time.time()
+        self.counter_steps += 1
+        self.avg_time = ((end - start) + self.avg_time * (self.counter_steps - 1)) / self.counter_steps
         return np.random.choice(best_actions)
 
     def _heuristic(self, state: GameState) -> float:
